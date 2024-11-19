@@ -2,13 +2,33 @@
 
 namespace App\Entity;
 
+use ApiPlatform\Metadata\ApiResource;
 use App\Repository\UserRepository;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use App\Entity\Traits\Timestampable;
 use App\Entity\Traits\UuidIdentifiable;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\HasLifecycleCallbacks]
+#[ApiResource(
+    collectionOperations: [
+        'get' => [
+            'security' => "is_granted('ROLE_ADMIN')"
+        ]
+    ],
+    itemOperations: [
+        'get' => [
+            'security' => "is_granted('ROLE_ADMIN') or object == user"
+        ],
+        'put' => [
+            'security' => "is_granted('ROLE_ADMIN')"
+        ],
+        'delete' => [
+            'security' => "is_granted('ROLE_ADMIN')"
+        ]
+    ]
+)]
 class User
 {
     use UuidIdentifiable; // UUID pour l'identifiant unique
@@ -22,6 +42,9 @@ class User
 
     #[ORM\Column(length: 255, unique: true)]
     private ?string $email = null;
+
+    #[ORM\Column(type: Types::JSON)]
+    private array $roles = [];
 
     public function getFirstName(): ?string
     {
@@ -55,6 +78,22 @@ class User
     public function setEmail(string $email): static
     {
         $this->email = $email;
+
+        return $this;
+    }
+
+    public function getRoles(): array
+    {
+        // Garantir qu'un utilisateur a toujours au moins ROLE_USER
+        $roles = $this->roles;
+        $roles[] = 'ROLE_USER';
+
+        return array_unique($roles);
+    }
+
+    public function setRoles(array $roles): static
+    {
+        $this->roles = $roles;
 
         return $this;
     }

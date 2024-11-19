@@ -7,9 +7,27 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use App\Entity\Traits\Timestampable;
 use App\Entity\Traits\UuidIdentifiable;
+use ApiPlatform\Metadata\ApiResource;
 
 #[ORM\Entity(repositoryClass: CommentRepository::class)]
 #[ORM\HasLifecycleCallbacks]
+#[ApiResource(
+    collectionOperations: [
+        'get',
+        'post' => [
+            'security' => "is_granted('ROLE_USER')"
+        ]
+    ],
+    itemOperations: [
+        'get',
+        'put' => [
+            'security' => "is_granted('ROLE_ADMIN') or object.getAuthor() == user"
+        ],
+        'delete' => [
+            'security' => "is_granted('ROLE_ADMIN') or object.getAuthor() == user"
+        ]
+    ]
+)]
 class Comment
 {
     use UuidIdentifiable; // UUID pour l'identifiant unique

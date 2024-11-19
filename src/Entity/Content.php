@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use ApiPlatform\Metadata\ApiResource;
 use App\Repository\ContentRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
@@ -10,6 +11,23 @@ use App\Entity\Traits\UuidIdentifiable;
 
 #[ORM\Entity(repositoryClass: ContentRepository::class)]
 #[ORM\HasLifecycleCallbacks]
+#[ApiResource(
+    collectionOperations: [
+        'get',
+        'post' => [
+            'security' => "is_granted('ROLE_ADMIN')"
+        ]
+    ],
+    itemOperations: [
+        'get',
+        'put' => [
+            'security' => "is_granted('ROLE_ADMIN') or object.getAuthor() == user"
+        ],
+        'delete' => [
+            'security' => "is_granted('ROLE_ADMIN')"
+        ]
+    ]
+)]
 class Content
 {
     use UuidIdentifiable; // UUID pour l'identifiant unique
@@ -36,6 +54,12 @@ class Content
     #[ORM\ManyToOne(targetEntity: User::class)]
     #[ORM\JoinColumn(nullable: false)]
     private ?User $author = null;
+
+    #[ORM\Column(type: Types::STRING, length: 255, nullable: true)]
+    private ?string $coverImage = null;
+
+    #[Vich\UploadableField(mapping: 'content_cover_image', fileNameProperty: 'coverImage')]
+    private ?File $coverImageFile = null;
 
     public function getTitle(): ?string
     {
@@ -120,4 +144,33 @@ class Content
 
         return $this;
     }
+
+    public function getCoverImage(): ?string
+    {
+        return $this->coverImage;
+    }
+
+    public function setCoverImage(?string $coverImage): static
+    {
+        $this->coverImage = $coverImage;
+
+        return $this;
+    }
+
+    public function setCoverImageFile(?File $file): static
+    {
+        $this->coverImageFile = $file;
+
+        if ($file) {
+            $this->updatedAt = new \DateTimeImmutable();
+        }
+
+        return $this;
+    }
+
+    public function getCoverImageFile(): ?File
+    {
+        return $this->coverImageFile;
+    }
+
 }
